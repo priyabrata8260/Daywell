@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f4ef">
+  <meta name="description" content="A calm, private task manager for daily plans, projects, areas, and useful resources.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/daywell-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/daywell-180.png">
+  <title>Daywell — make room for what matters</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="auth-gate" class="auth-shell">
+    <section class="auth-card" aria-labelledby="auth-title">
+      <a class="brand auth-brand" href="#" aria-label="Daywell"><span class="brand-mark">d</span><span>daywell</span></a>
+      <section id="auth-landing">
+        <p class="section-kicker">A LITTLE AT A TIME</p>
+        <h1 id="auth-title">Your space to follow through.</h1>
+        <p class="auth-copy">Sign in to open your task manager. Your tasks stay on this device; an account does not sync task data between devices.</p>
+        <div class="auth-choice"><button class="button button-primary" id="show-signup" disabled>Sign up</button><button class="button button-quiet" id="show-login" disabled>Log in</button></div>
+        <button class="text-button legacy-export hidden" id="export-legacy">Download existing device data</button>
+      </section>
+      <section id="auth-form-screen" class="hidden" aria-labelledby="auth-form-title">
+        <button class="text-button auth-back" id="auth-back">← Back</button>
+        <p class="section-kicker" id="auth-mode-label">YOUR DAYWELL ACCOUNT</p>
+        <h1 id="auth-form-title">Log in</h1>
+        <form id="auth-form" novalidate>
+          <label class="field-label">Email address<input name="email" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com"></label>
+          <label class="field-label" id="password-field">Password<input name="password" type="password" autocomplete="current-password" required minlength="6" maxlength="128" placeholder="Your password"></label>
+          <label class="field-label hidden" id="new-password-field">New password<input name="newPassword" type="password" autocomplete="new-password" required minlength="6" maxlength="128" placeholder="At least 6 characters"></label>
+          <button class="button button-primary auth-submit" id="auth-submit" type="submit" disabled>Log in</button>
+        </form>
+        <button class="button button-google" id="google-signin" type="button" disabled><span class="google-mark" aria-hidden="true">G</span>Continue with Google</button>
+        <button class="text-button reset-password" id="reset-password" type="button" disabled>Forgot password? Send a reset email</button>
+        <p id="auth-message" class="auth-message" role="status" aria-live="polite"></p>
+      </section>
+      <div id="auth-config-message" class="setup-message" role="status">
+        <strong>Authentication setup is needed</strong>
+        <p>If this message remains, add the Supabase project URL and publishable key to <code>.env.local</code>, then restart the app with <code>npm run dev</code>. Follow <a href="AUTH_SETUP.md">AUTH_SETUP.md</a>. Do not open <code>index.html</code> directly.</p>
+      </div>
+      <p id="auth-offline-hint" class="auth-footnote">Sign-up, login, Google OAuth, and password reset require an internet connection. After a successful sign-in, your device can reopen its local tasks offline.</p>
+    </section>
+    <p class="auth-privacy">Your local task data is separated by account on this device. Sign out before handing over a shared device.</p>
+  </main>
+
+  <div class="app-shell hidden" id="task-app">
+    <aside class="sidebar" aria-label="Main navigation">
+      <a class="brand" href="#today" aria-label="Daywell home"><span class="brand-mark">d</span><span>daywell</span></a>
+      <p class="nav-label">YOUR SPACE</p>
+      <nav id="main-nav">
+        <button class="nav-item active" data-view="today"><span class="nav-icon">◷</span>Today<span class="nav-count" id="today-count"></span></button>
+        <button class="nav-item" data-view="inbox"><span class="nav-icon">↓</span>Inbox<span class="nav-count" id="inbox-count"></span></button>
+        <button class="nav-item" data-view="upcoming"><span class="nav-icon">▦</span>Upcoming</button>
+        <button class="nav-item" data-view="backlog"><span class="nav-icon">◌</span>Backlog</button>
+        <button class="nav-item" data-view="projects"><span class="nav-icon">▤</span>Projects</button>
+        <button class="nav-item" data-view="areas"><span class="nav-icon">⌂</span>Areas</button>
+        <button class="nav-item" data-view="resources"><span class="nav-icon">▧</span>Resources</button>
+        <button class="nav-item" data-view="profile"><span class="nav-icon">◉</span>Profile</button>
+        <button class="nav-item" data-view="completed"><span class="nav-icon">✓</span>Completed</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="gentle-note"><span class="note-spark">✳</span><p>A plan is a guide,<br>not a measure of you.</p></div>
+        <button class="nav-item" id="review-open"><span class="nav-icon">↻</span>Weekly review</button>
+        <button class="nav-item" id="backup-open"><span class="nav-icon">⇧</span>Backup &amp; data</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="mobile-brand"><span class="brand-mark">d</span> daywell</div>
+        <div class="topbar-date" id="top-date"></div>
+        <div class="topbar-actions"><span id="account-email" class="account-email"></span><label class="search-wrap"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Find a task" aria-label="Search tasks and projects"><kbd>/</kbd></label><button class="install-button" id="pwa-install" type="button">⇩ <span>Install</span></button><button class="icon-button" id="top-backup" aria-label="Backup and data" title="Backup and data">⇧</button><button class="signout-button" id="sign-out" type="button">Sign out</button></div>
+      </header>
+
+      <section class="page" id="page">
+        <div class="page-heading"><div><p class="eyebrow" id="eyebrow">MONDAY, JUNE 16</p><h1 id="page-title">A little at a time.</h1><p class="page-subtitle" id="page-subtitle">Choose what feels doable. You can change the plan as you go.</p></div><button class="button button-primary" id="add-task"><span>＋</span> Add a task</button></div>
+
+        <section class="plan-card" id="plan-card" aria-label="Today's plan">
+          <div class="plan-top"><div><span class="section-kicker">YOUR DAY, YOUR PACE</span><h2 id="plan-summary">Make a little room for what matters.</h2></div><button class="text-button" id="set-time">Set available time <span>→</span></button></div>
+          <div class="plan-meter"><div class="meter-track"><div class="meter-fill" id="meter-fill"></div></div><span id="plan-load">0 min planned</span></div>
+          <p class="plan-hint" id="plan-hint">A buffer is already included in your day.</p>
+        </section>
+
+        <div class="list-toolbar" id="list-toolbar"><div><h2 class="list-title" id="list-title">Today's plan</h2><span class="list-caption" id="list-caption">Small steps count.</span></div><div class="toolbar-right"><select id="sort-select" aria-label="Sort tasks"><option value="plan">Planned first</option><option value="due">Due date</option><option value="priority">Importance</option></select><button class="filter-button" id="filter-toggle">☷ <span>Filters</span></button></div></div>
+        <div class="category-tools hidden" id="category-tools"><label class="check-label"><input type="checkbox" id="show-archived"> Show archived</label><button class="button button-primary" id="category-add">＋ Add</button></div>
+        <div class="filter-row hidden" id="filter-row"><select id="energy-filter" aria-label="Filter by energy"><option value="">Any energy</option><option>Low</option><option>Medium</option><option>High</option></select><select id="context-filter" aria-label="Filter by context"><option value="">Any context</option><option>Home</option><option>Work</option><option>Errands</option><option>Online</option></select><button class="text-button" id="clear-filters">Clear filters</button></div>
+        <div id="task-list" class="task-list" aria-live="polite"></div>
+        <div id="projects-list" class="projects-grid hidden"></div>
+        <div id="areas-list" class="projects-grid hidden"></div>
+        <div id="resources-list" class="resources-list hidden"></div>
+        <section id="profile-view" class="profile-view hidden" aria-labelledby="profile-heading">
+          <article class="profile-card">
+            <div class="profile-identity"><div class="profile-avatar" id="profile-avatar" aria-hidden="true">D</div><div><p class="section-kicker">YOUR ACCOUNT</p><h2 id="profile-heading">Profile</h2><p class="profile-email" id="profile-email"></p></div></div>
+            <p class="profile-connectivity" id="profile-offline-note" role="status" aria-live="polite"></p>
+            <form id="profile-form">
+              <label class="field-label">Display name<input name="displayName" id="profile-name" maxlength="80" placeholder="How should Daywell address you?"></label>
+              <button class="button button-primary" id="profile-save" type="submit">Save profile</button>
+              <p class="profile-message" id="profile-message" role="status" aria-live="polite"></p>
+            </form>
+            <div class="profile-details"><div><span>Sign-in method</span><strong id="profile-provider">—</strong></div><div><span>Task storage</span><strong>On this device</strong></div></div>
+            <p class="profile-note">Your display name is saved with your Supabase account. Tasks, Projects, Areas, Resources, and settings stay in this browser on this device; they do not sync between devices.</p>
+            <div class="profile-footer"><div class="profile-reset"><button class="text-button" id="profile-reset-password" type="button">Send password reset email</button><span class="profile-help" id="profile-reset-note"></span></div><span class="profile-action-message" id="profile-action-message" role="status" aria-live="polite"></span></div>
+          </article>
+        </section>
+        <button class="add-inline" id="add-inline">＋ Add a task</button>
+      </section>
+      <footer class="footer-note"><span>◉</span> <span id="network-status">Your data stays on this device. No automatic sync.</span><button id="footer-backup" class="text-button">Back up your data</button></footer>
+    </main>
+  </div>
+
+  <dialog id="task-dialog" class="dialog"><form id="task-form" method="dialog"><div class="dialog-head"><div><span class="section-kicker">MAKE IT DOABLE</span><h2 id="task-dialog-title">Capture a task</h2></div><button type="button" class="close-button" data-close aria-label="Close">×</button></div><label class="field-label">What needs doing?<input name="title" required maxlength="140" placeholder="e.g. Reply to Maya about the draft" autofocus></label><details class="more-details"><summary>Add a next step, date, or other details</summary><div class="field-grid"><label class="field-label span-2">Next action<input name="action" maxlength="180" placeholder="The very next physical step"></label><label class="field-label">Project or Area<select name="association"><option value="">Unassigned</option></select></label><label class="field-label">Planned work date<input name="planned" type="date"></label><label class="field-label">Due date<input name="due" type="date"></label><label class="field-label">Estimate (minutes)<input name="estimate" type="number" min="1" max="1440" placeholder="25"></label><label class="field-label">Repeat (optional)<select name="repeat"><option value="">Does not repeat</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label><label class="field-label">Energy<select name="energy"><option value="">Any</option><option>Low</option><option>Medium</option><option>High</option></select></label><label class="field-label">Context<select name="context"><option value="">Any</option><option>Home</option><option>Work</option><option>Errands</option><option>Online</option></select></label><label class="field-label">Importance<select name="priority"><option value="3">3 · Helpful</option><option value="2">2 · Important</option><option value="1">1 · Essential</option></select></label><label class="field-label">Status<select name="status"><option value="open">Ready</option><option value="waiting">Waiting for</option></select></label><label class="field-label span-2">Notes<textarea name="notes" rows="3" placeholder="Links, context, or anything to remember"></textarea></label><label class="field-label span-2">Waiting on / blocker<input name="blocker" maxlength="180" placeholder="Person, answer, or thing you're waiting for"></label></div></details><div class="dialog-actions"><button type="button" class="text-button danger hidden" id="delete-task">Delete task</button><span class="spacer"></span><button type="button" class="button button-quiet" data-close>Cancel</button><button class="button button-primary" type="submit">Save task</button></div></form></dialog>
+
+  <dialog id="time-dialog" class="dialog small-dialog"><form id="time-form" method="dialog"><div class="dialog-head"><div><span class="section-kicker">A REALISTIC CONTAINER</span><h2>How much time do you have?</h2></div><button type="button" class="close-button" data-close aria-label="Close">×</button></div><p class="dialog-copy">We’ll compare your planned tasks to this time. Your due dates stay separate from your work plan.</p><label class="field-label">Available work time (minutes)<input name="available" type="number" min="0" max="1440" value="180"></label><label class="check-label"><input name="buffer" type="checkbox" checked> Keep a 20% buffer</label><div class="dialog-actions"><span class="spacer"></span><button type="button" class="button button-quiet" data-close>Cancel</button><button class="button button-primary">Save plan</button></div></form></dialog>
+
+  <dialog id="project-dialog" class="dialog small-dialog"><form id="project-form" method="dialog"><div class="dialog-head"><div><span class="section-kicker">A SHARED OUTCOME</span><h2>New project</h2></div><button type="button" class="close-button" data-close aria-label="Close">×</button></div><label class="field-label">Project name<input name="name" required maxlength="80" placeholder="e.g. Refresh the portfolio"></label><label class="field-label">What does done look like?<textarea name="outcome" rows="3" placeholder="A short outcome to help you stay oriented"></textarea></label><div class="dialog-actions"><span class="spacer"></span><button type="button" class="button button-quiet" data-close>Cancel</button><button class="button button-primary">Create project</button></div></form></dialog>
+
+  <dialog id="area-dialog" class="dialog small-dialog"><form id="area-form" method="dialog"><div class="dialog-head"><div><span class="section-kicker">ONGOING RESPONSIBILITY</span><h2 id="area-dialog-title">New area</h2></div><button type="button" class="close-button" data-close aria-label="Close">×</button></div><label class="field-label">Area name<input name="name" required maxlength="80" placeholder="e.g. Home, health, finances"></label><label class="field-label">Standards &amp; routines<textarea name="standards" rows="3" placeholder="What does ‘well maintained’ look like? Any routines you choose to keep?"></textarea></label><label class="field-label">Area notes<textarea name="notes" rows="3" placeholder="Context, useful details, or maintenance notes"></textarea></label><div class="dialog-actions"><span class="spacer"></span><button type="button" class="button button-quiet" data-close>Cancel</button><button class="button button-primary">Save area</button></div></form></dialog>
+
+  <dialog id="resource-dialog" class="dialog small-dialog"><form id="resource-form" method="dialog"><div class="dialog-head"><div><span class="section-kicker">REFERENCE &amp; INTERESTS</span><h2 id="resource-dialog-title">Save a resource</h2></div><button type="button" class="close-button" data-close aria-label="Close">×</button></div><label class="field-label">Title<input name="title" required maxlength="120" placeholder="A note, idea, topic, or reference"></label><label class="field-label">Link (optional)<input name="url" type="url" placeholder="https://"></label><label class="field-label">Notes<textarea name="notes" rows="5" placeholder="Useful context, excerpts, experiences, or things to explore later"></textarea></label><label class="field-label">Link to a Project or Area (optional)<select name="linked"><option value="">Standalone resource</option></select></label><div class="dialog-actions"><button type="button" class="text-button danger hidden" id="delete-resource">Delete</button><span class="spacer"></span><button type="button" class="button button-quiet" data-close>Cancel</button><button class="button button-primary">Save resource</button></div></form></dialog>
+
+  <dialog id="review-dialog" class="dialog"><div class="dialog-head"><div><span class="section-kicker">A KIND RESET</span><h2>Weekly review</h2></div><button type="button" class="close-button" data-close aria-label="Close">×</button></div><p class="dialog-copy">Take a moment to see what’s still open. For each task, choose what makes sense now. Nothing moves unless you choose it.</p><div id="review-list" class="review-list"></div><div class="review-footer"><button class="button button-quiet" data-close>Done for now</button></div></dialog>
+
+  <dialog id="backup-dialog" class="dialog small-dialog"><div class="dialog-head"><div><span class="section-kicker">YOUR DATA</span><h2>Back up &amp; restore</h2></div><button type="button" class="close-button" data-close aria-label="Close">×</button></div><p class="dialog-copy">Your information is stored in this browser on this device. There is no automatic sync between devices. Export a JSON file to protect your data or transfer it yourself; importing replaces the current local account profile.</p><div class="data-actions"><button id="export-data" class="button button-primary">⇩ Export backup</button><label class="button button-quiet file-button">Import backup<input id="import-data" type="file" accept="application/json,.json"></label><button id="clear-data" class="text-button danger">Clear this account’s local data</button></div><p class="fine-print">Clearing data cannot be undone unless you have an export.</p></dialog>
+
+  <dialog id="install-dialog" class="dialog small-dialog"><div class="dialog-head"><div><span class="section-kicker">DAYWELL ON YOUR PHONE</span><h2>Install for offline use</h2></div><button type="button" class="close-button" data-close aria-label="Close">×</button></div><p class="dialog-copy" id="install-instructions">Add Daywell to your home screen from your browser menu. The app needs to be opened once online so its files can be saved for offline use.</p><div class="offline-explainer"><strong>Offline and private by default</strong><p>Tasks and settings stay in this browser on this device. There is no automatic sync. Export a backup and transfer it yourself to move data to another device.</p></div><div class="dialog-actions"><span class="spacer"></span><button class="button button-primary" data-close>Got it</button></div></dialog>
+
+  <dialog id="legacy-dialog" class="dialog small-dialog"><div class="dialog-head"><div><span class="section-kicker">EXISTING DEVICE DATA</span><h2>Choose what to do with your current tasks</h2></div></div><p class="dialog-copy">Your existing Daywell data is still stored on this device and has not been changed. You can copy it into this account’s local profile, or start with an empty profile. Copying does not sync it to a server.</p><div class="data-actions"><button class="button button-primary" id="copy-legacy">Copy existing data into this account</button><button class="button button-quiet" id="start-empty">Start with an empty profile</button><button class="text-button" id="download-legacy-dialog">Download a copy first</button></div></dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
